@@ -11,6 +11,7 @@ const (
 
 type Todo struct {
     gorm.Model
+
     Name        string `gorm:"Not Null" json:"name"`
     Description string `json:"description"`
     Status      string `gorm:"Not Null" json:"status"`

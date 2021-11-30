@@ -11,8 +11,9 @@ import (
     _ "github.com/lib/pq"
 )
 
-func ConnectDB() {
+func ConnectToDB() {
     var err error
+
     p := config.Config("DB_PORT")
     port, err := strconv.ParseUint(p, 10, 32)
     println(err)
@@ -25,7 +26,6 @@ func ConnectDB() {
         config.Config("DB_PASSWORD"),
         config.Config("DB_NAME"),
     )
-
 
     DB, err = gorm.Open(
         "postgres",

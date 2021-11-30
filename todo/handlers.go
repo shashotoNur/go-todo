@@ -12,15 +12,18 @@ type TodoHandler struct {
     repository *TodoRepository
 }
 
-func (handler *TodoHandler) GetAll(c *fiber.Ctx) error {
-    var todos []Todo = handler.repository.FindAll()
+func (handler *TodoHandler) GetAllTodos(c *fiber.Ctx) error {
+    var todos []Todo = handler.repository.FindAllTodos()
     return c.JSON(todos)
 }
 
-func (handler *TodoHandler) Get(c *fiber.Ctx) error {
+func (handler *TodoHandler) GetTodo(c *fiber.Ctx) error {
     id, err := strconv.Atoi(c.Params("id"))
-    todo, err := handler.repository.Find(id)
+    if err != nil {
+        print(err)
+    }
 
+    todo, err := handler.repository.FindTodo(id)
     if err != nil {
         return c.Status(404).JSON(fiber.Map{
             "status": 404,
@@ -31,14 +34,18 @@ func (handler *TodoHandler) Get(c *fiber.Ctx) error {
     return c.JSON(todo)
 }
 
-func (handler *TodoHandler) Create(c *fiber.Ctx) error {
+func (handler *TodoHandler) CreateNewTodo(c *fiber.Ctx) error {
     data := new(Todo)
 
     if err := c.BodyParser(data); err != nil {
-        return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "error": err})
+        return c.Status(500).JSON(fiber.Map{
+            "status": "error",
+            "message": "Review your input",
+            "error": err,
+        })
     }
 
-    item, err := handler.repository.Create(*data)
+    item, err := handler.repository.CreateTodo(*data)
 
     if err != nil {
         return c.Status(400).JSON(fiber.Map{
@@ -51,7 +58,7 @@ func (handler *TodoHandler) Create(c *fiber.Ctx) error {
     return c.JSON(item)
 }
 
-func (handler *TodoHandler) Update(c *fiber.Ctx) error {
+func (handler *TodoHandler) UpdateTodo(c *fiber.Ctx) error {
     id, err := strconv.Atoi(c.Params("id"))
 
     if err != nil {
@@ -62,7 +69,7 @@ func (handler *TodoHandler) Update(c *fiber.Ctx) error {
         })
     }
 
-    todo, err := handler.repository.Find(id)
+    todo, err := handler.repository.FindTodo(id)
 
     if err != nil {
         return c.Status(404).JSON(fiber.Map{
@@ -73,14 +80,18 @@ func (handler *TodoHandler) Update(c *fiber.Ctx) error {
     todoData := new(Todo)
 
     if err := c.BodyParser(todoData); err != nil {
-        return c.Status(400).JSON(fiber.Map{"status": "error", "message": "Review your input", "data": err})
+        return c.Status(400).JSON(fiber.Map{
+            "status": "error",
+            "message": "Review your input",
+            "data": err,
+        })
     }
 
     todo.Name = todoData.Name
     todo.Description = todoData.Description
     todo.Status = todoData.Status
 
-    item, err := handler.repository.Save(todo)
+    item, err := handler.repository.SaveTodo(todo)
 
     if err != nil {
         return c.Status(400).JSON(fiber.Map{
@@ -92,7 +103,7 @@ func (handler *TodoHandler) Update(c *fiber.Ctx) error {
     return c.JSON(item)
 }
 
-func (handler *TodoHandler) Delete(c *fiber.Ctx) error {
+func (handler *TodoHandler) DeleteTodo(c *fiber.Ctx) error {
     id, err := strconv.Atoi(c.Params("id"))
     if err != nil {
         return c.Status(400).JSON(fiber.Map{
@@ -101,11 +112,13 @@ func (handler *TodoHandler) Delete(c *fiber.Ctx) error {
             "err":     err,
         })
     }
-    RowsAffected := handler.repository.Delete(id)
+
+    RowsAffected := handler.repository.DeleteTodo(id)
     statusCode := 204
     if RowsAffected == 0 {
         statusCode = 400
     }
+
     return c.Status(statusCode).JSON(nil)
 }
 
@@ -120,10 +133,10 @@ func Register(router fiber.Router, database *gorm.DB) {
     todoRepository := NewTodoRepository(database)
     todoHandler := NewTodoHandler(todoRepository)
 
-    movieRouter := router.Group("/todo")
-    movieRouter.Get("/", todoHandler.GetAll)
-    movieRouter.Get("/:id", todoHandler.Get)
-    movieRouter.Put("/:id", todoHandler.Update)
-    movieRouter.Post("/", todoHandler.Create)
-    movieRouter.Delete("/:id", todoHandler.Delete)
+    todoRouter := router.Group("/todo")
+    todoRouter.Get("/", todoHandler.GetAllTodos)
+    todoRouter.Get("/:id", todoHandler.GetTodo)
+    todoRouter.Put("/:id", todoHandler.UpdateTodo)
+    todoRouter.Post("/", todoHandler.CreateNewTodo)
+    todoRouter.Delete("/:id", todoHandler.DeleteTodo)
 }
